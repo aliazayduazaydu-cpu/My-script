@@ -1,0 +1,840 @@
+local Players = game:GetService("Players")
+local UIS = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+
+local player = Players.LocalPlayer
+
+--------------------------------------------------
+-- VALUES
+--------------------------------------------------
+
+local speed = 50
+local jumpPower = 50
+local gravity = 196.2
+local flySpeed = 50
+
+local speedEnabled = false
+local jumpEnabled = false
+local gravityEnabled = false
+local noclipEnabled = false
+local flying = false
+
+--------------------------------------------------
+-- GUI
+--------------------------------------------------
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "PlayerSettingsGUI"
+gui.ResetOnSpawn = false
+gui.Parent = player:WaitForChild("PlayerGui")
+
+--------------------------------------------------
+-- OPEN BUTTON
+--------------------------------------------------
+
+local openButton = Instance.new("TextButton")
+openButton.Size = UDim2.fromOffset(45,45)
+openButton.Position = UDim2.fromOffset(20,120)
+openButton.Text = "+"
+openButton.TextSize = 28
+openButton.TextColor3 = Color3.new(1,1,1)
+openButton.BackgroundColor3 = Color3.fromRGB(0,120,255)
+openButton.BorderSizePixel = 1
+openButton.BorderColor3 = Color3.fromRGB(0,170,255)
+openButton.Active = true
+openButton.Parent = gui
+
+--------------------------------------------------
+-- MAIN HOLDER
+--------------------------------------------------
+
+local holder = Instance.new("Frame")
+holder.Size = UDim2.fromOffset(380,430)
+holder.Position = UDim2.fromOffset(30,120)
+holder.BackgroundColor3 = Color3.fromRGB(0,110,255)
+holder.BackgroundTransparency = 0.25
+holder.BorderSizePixel = 2
+holder.BorderColor3 = Color3.fromRGB(0,170,255)
+holder.Active = true
+holder.Parent = gui
+
+--------------------------------------------------
+-- X
+--------------------------------------------------
+
+local close = Instance.new("TextButton")
+close.Size = UDim2.fromOffset(22,22)
+close.Position = UDim2.fromOffset(10,0)
+close.Text = "X"
+close.TextSize = 13
+close.TextColor3 = Color3.fromRGB(255,0,0)
+close.BackgroundColor3 = Color3.fromRGB(255,255,0)
+close.BorderSizePixel = 1
+close.Parent = holder
+
+--------------------------------------------------
+-- CREATE VALUE SECTION
+--------------------------------------------------
+
+local function createSection(name,y,value)
+
+	local button = Instance.new("TextButton")
+	button.Size = UDim2.fromOffset(120,45)
+	button.Position = UDim2.fromOffset(35,y)
+	button.Text = name.." OFF"
+	button.TextSize = 15
+	button.TextColor3 = Color3.new(1,1,1)
+	button.BackgroundColor3 = Color3.fromRGB(200,0,0)
+	button.Parent = holder
+
+	local minus = Instance.new("TextButton")
+	minus.Size = UDim2.fromOffset(38,38)
+	minus.Position = UDim2.fromOffset(165,y+4)
+	minus.Text = "-"
+	minus.TextSize = 22
+	minus.Parent = holder
+
+	local box = Instance.new("TextBox")
+	box.Size = UDim2.fromOffset(80,38)
+	box.Position = UDim2.fromOffset(210,y+4)
+	box.Text = tostring(value)
+	box.TextSize = 17
+	box.TextColor3 = Color3.new(1,1,1)
+	box.BackgroundColor3 = Color3.fromRGB(50,50,50)
+	box.ClearTextOnFocus = false
+	box.Parent = holder
+
+	local plus = Instance.new("TextButton")
+	plus.Size = UDim2.fromOffset(38,38)
+	plus.Position = UDim2.fromOffset(300,y+4)
+	plus.Text = "+"
+	plus.TextSize = 22
+	plus.Parent = holder
+
+	return button,minus,box,plus
+end
+
+--------------------------------------------------
+-- SPEED
+--------------------------------------------------
+
+local speedButton,speedMinus,speedBox,speedPlus =
+	createSection("SPEED",35,speed)
+
+--------------------------------------------------
+-- JUMP
+--------------------------------------------------
+
+local jumpButton,jumpMinus,jumpBox,jumpPlus =
+	createSection("JUMP",115,jumpPower)
+
+--------------------------------------------------
+-- GRAVITY
+--------------------------------------------------
+
+local gravityButton,gravityMinus,gravityBox,gravityPlus =
+	createSection("GRAVITY",195,gravity)
+
+--------------------------------------------------
+-- NOCLIP
+--------------------------------------------------
+
+local noclipButton = Instance.new("TextButton")
+noclipButton.Size = UDim2.fromOffset(120,45)
+noclipButton.Position = UDim2.fromOffset(35,275)
+noclipButton.Text = "NOCLIP OFF"
+noclipButton.TextSize = 15
+noclipButton.TextColor3 = Color3.new(1,1,1)
+noclipButton.BackgroundColor3 = Color3.fromRGB(200,0,0)
+noclipButton.Parent = holder
+
+--------------------------------------------------
+-- FLY
+--------------------------------------------------
+
+local flyButton = Instance.new("TextButton")
+flyButton.Size = UDim2.fromOffset(120,45)
+flyButton.Position = UDim2.fromOffset(35,335)
+flyButton.Text = "FLY OFF"
+flyButton.TextSize = 15
+flyButton.TextColor3 = Color3.new(1,1,1)
+flyButton.BackgroundColor3 = Color3.fromRGB(200,0,0)
+flyButton.Parent = holder
+
+local flyMinus = Instance.new("TextButton")
+flyMinus.Size = UDim2.fromOffset(38,38)
+flyMinus.Position = UDim2.fromOffset(165,339)
+flyMinus.Text = "-"
+flyMinus.TextSize = 22
+flyMinus.Parent = holder
+
+local flyBox = Instance.new("TextBox")
+flyBox.Size = UDim2.fromOffset(80,38)
+flyBox.Position = UDim2.fromOffset(210,339)
+flyBox.Text = "50"
+flyBox.TextSize = 17
+flyBox.TextColor3 = Color3.new(1,1,1)
+flyBox.BackgroundColor3 = Color3.fromRGB(50,50,50)
+flyBox.ClearTextOnFocus = false
+flyBox.Parent = holder
+
+local flyPlus = Instance.new("TextButton")
+flyPlus.Size = UDim2.fromOffset(38,38)
+flyPlus.Position = UDim2.fromOffset(300,339)
+flyPlus.Text = "+"
+flyPlus.TextSize = 22
+flyPlus.Parent = holder
+
+--------------------------------------------------
+-- SPEED
+--------------------------------------------------
+
+local function getSpeed()
+
+	local n = tonumber(speedBox.Text) or speed
+
+	speed = math.clamp(math.floor(n),1,1500)
+
+	speedBox.Text = tostring(speed)
+
+	return speed
+end
+
+local function updateSpeed()
+
+	local character = player.Character
+	if not character then return end
+
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+
+	if humanoid then
+		humanoid.WalkSpeed = speedEnabled and getSpeed() or 16
+	end
+end
+
+speedButton.Activated:Connect(function()
+
+	speedEnabled = not speedEnabled
+
+	if speedEnabled then
+		speedButton.Text = "SPEED ON"
+		speedButton.BackgroundColor3 = Color3.fromRGB(0,180,0)
+	else
+		speedButton.Text = "SPEED OFF"
+		speedButton.BackgroundColor3 = Color3.fromRGB(200,0,0)
+	end
+
+	updateSpeed()
+end)
+
+speedPlus.Activated:Connect(function()
+
+	speed = math.min(getSpeed()+10,1500)
+	speedBox.Text = tostring(speed)
+
+	updateSpeed()
+end)
+
+speedMinus.Activated:Connect(function()
+
+	speed = math.max(getSpeed()-10,1)
+	speedBox.Text = tostring(speed)
+
+	updateSpeed()
+end)
+
+speedBox.FocusLost:Connect(updateSpeed)
+
+--------------------------------------------------
+-- JUMP
+--------------------------------------------------
+
+local function getJump()
+
+	local n = tonumber(jumpBox.Text) or jumpPower
+
+	jumpPower = math.clamp(math.floor(n),1,1500)
+
+	jumpBox.Text = tostring(jumpPower)
+
+	return jumpPower
+end
+
+local function updateJump()
+
+	local character = player.Character
+	if not character then return end
+
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+
+	if humanoid then
+
+		humanoid.UseJumpPower = true
+
+		humanoid.JumpPower =
+			jumpEnabled and getJump() or 50
+	end
+end
+
+jumpButton.Activated:Connect(function()
+
+	jumpEnabled = not jumpEnabled
+
+	if jumpEnabled then
+		jumpButton.Text = "JUMP ON"
+		jumpButton.BackgroundColor3 = Color3.fromRGB(0,180,0)
+	else
+		jumpButton.Text = "JUMP OFF"
+		jumpButton.BackgroundColor3 = Color3.fromRGB(200,0,0)
+	end
+
+	updateJump()
+end)
+
+jumpPlus.Activated:Connect(function()
+
+	jumpPower = math.min(getJump()+10,1500)
+	jumpBox.Text = tostring(jumpPower)
+
+	updateJump()
+end)
+
+jumpMinus.Activated:Connect(function()
+
+	jumpPower = math.max(getJump()-10,1)
+	jumpBox.Text = tostring(jumpPower)
+
+	updateJump()
+end)
+
+jumpBox.FocusLost:Connect(updateJump)
+
+--------------------------------------------------
+-- GRAVITY
+--------------------------------------------------
+
+local function getGravity()
+
+	local n = tonumber(gravityBox.Text) or gravity
+
+	gravity = math.clamp(math.floor(n),0,1500)
+
+	gravityBox.Text = tostring(gravity)
+
+	return gravity
+end
+
+local function updateGravity()
+
+	if gravityEnabled then
+		Workspace.Gravity = getGravity()
+	else
+		Workspace.Gravity = 196.2
+	end
+end
+
+gravityButton.Activated:Connect(function()
+
+	gravityEnabled = not gravityEnabled
+
+	if gravityEnabled then
+		gravityButton.Text = "GRAVITY ON"
+		gravityButton.BackgroundColor3 = Color3.fromRGB(0,180,0)
+	else
+		gravityButton.Text = "GRAVITY OFF"
+		gravityButton.BackgroundColor3 = Color3.fromRGB(200,0,0)
+	end
+
+	updateGravity()
+end)
+
+gravityPlus.Activated:Connect(function()
+
+	gravity = math.min(getGravity()+10,1500)
+	gravityBox.Text = tostring(gravity)
+
+	updateGravity()
+end)
+
+gravityMinus.Activated:Connect(function()
+
+	gravity = math.max(getGravity()-10,0)
+	gravityBox.Text = tostring(gravity)
+
+	updateGravity()
+end)
+
+gravityBox.FocusLost:Connect(updateGravity)
+
+--------------------------------------------------
+-- NOCLIP
+--------------------------------------------------
+
+local function updateNoclip()
+
+	local character = player.Character
+	if not character then return end
+
+	for _,part in ipairs(character:GetDescendants()) do
+
+		if part:IsA("BasePart") then
+			part.CanCollide = not noclipEnabled
+		end
+
+	end
+end
+
+noclipButton.Activated:Connect(function()
+
+	noclipEnabled = not noclipEnabled
+
+	if noclipEnabled then
+		noclipButton.Text = "NOCLIP ON"
+		noclipButton.BackgroundColor3 = Color3.fromRGB(0,180,0)
+	else
+		noclipButton.Text = "NOCLIP OFF"
+		noclipButton.BackgroundColor3 = Color3.fromRGB(200,0,0)
+	end
+
+	updateNoclip()
+end)
+
+RunService.Stepped:Connect(function()
+
+	if noclipEnabled then
+		updateNoclip()
+	end
+
+end)
+
+--------------------------------------------------
+-- FLY SPEED
+--------------------------------------------------
+
+local function getFlySpeed()
+
+	local n = tonumber(flyBox.Text) or flySpeed
+
+	flySpeed = math.clamp(math.floor(n),1,1500)
+
+	flyBox.Text = tostring(flySpeed)
+
+	return flySpeed
+end
+
+--------------------------------------------------
+-- FLY VARIABLES
+--------------------------------------------------
+
+local flyVelocity
+local flyGyro
+local flyConnection
+
+--------------------------------------------------
+-- STOP FLY
+--------------------------------------------------
+
+local function stopFly()
+
+	flying = false
+
+	if flyConnection then
+		flyConnection:Disconnect()
+		flyConnection = nil
+	end
+
+	if flyVelocity then
+		flyVelocity:Destroy()
+		flyVelocity = nil
+	end
+
+	if flyGyro then
+		flyGyro:Destroy()
+		flyGyro = nil
+	end
+
+	local character = player.Character
+
+	if character then
+
+		local humanoid =
+			character:FindFirstChildOfClass("Humanoid")
+
+		if humanoid then
+
+			humanoid.PlatformStand = false
+			humanoid.AutoRotate = true
+
+		end
+	end
+
+	if flyButton.Parent then
+		flyButton.Text = "FLY OFF"
+		flyButton.BackgroundColor3 =
+			Color3.fromRGB(200,0,0)
+	end
+end
+
+--------------------------------------------------
+-- START FLY
+--------------------------------------------------
+
+local function startFly()
+
+	stopFly()
+
+	local character = player.Character
+	if not character then return end
+
+	local humanoid =
+		character:FindFirstChildOfClass("Humanoid")
+
+	local root =
+		character:FindFirstChild("HumanoidRootPart")
+
+	if not humanoid or not root then
+		return
+	end
+
+	flying = true
+
+	flyButton.Text = "FLY ON"
+	flyButton.BackgroundColor3 =
+		Color3.fromRGB(0,180,0)
+
+	humanoid.PlatformStand = true
+	humanoid.AutoRotate = false
+
+	flyVelocity = Instance.new("BodyVelocity")
+
+	flyVelocity.MaxForce =
+		Vector3.new(math.huge,math.huge,math.huge)
+
+	flyVelocity.P = 10000
+	flyVelocity.Velocity = Vector3.zero
+	flyVelocity.Parent = root
+
+	flyGyro = Instance.new("BodyGyro")
+
+	flyGyro.MaxTorque =
+		Vector3.new(math.huge,math.huge,math.huge)
+
+	flyGyro.P = 10000
+	flyGyro.D = 500
+	flyGyro.Parent = root
+
+	flyConnection =
+		RunService.RenderStepped:Connect(function()
+
+			if not flying then return end
+
+			if not root.Parent then
+				stopFly()
+				return
+			end
+
+			local camera =
+				Workspace.CurrentCamera
+
+			if not camera then return end
+
+			local look =
+				camera.CFrame.LookVector
+
+			local right =
+				camera.CFrame.RightVector
+
+			local move =
+				humanoid.MoveDirection
+
+			local velocity =
+				Vector3.zero
+
+			--------------------------------------------------
+			-- نفس نظام الطيران الذي أرسلته
+			--------------------------------------------------
+
+			if move.Magnitude > 0 then
+
+				local forwardFlat =
+					Vector3.new(
+						look.X,
+						0,
+						look.Z
+					)
+
+				local rightFlat =
+					Vector3.new(
+						right.X,
+						0,
+						right.Z
+					)
+
+				local forwardAmount = 0
+				local rightAmount = 0
+
+				if forwardFlat.Magnitude > 0 then
+					forwardAmount =
+						move:Dot(forwardFlat.Unit)
+				end
+
+				if rightFlat.Magnitude > 0 then
+					rightAmount =
+						move:Dot(rightFlat.Unit)
+				end
+
+				local forwardVector =
+					look * forwardAmount
+
+				local rightVector =
+					right * rightAmount
+
+				velocity =
+					forwardVector + rightVector
+
+				if velocity.Magnitude > 0 then
+					velocity =
+						velocity.Unit * getFlySpeed()
+				end
+			end
+
+			flyVelocity.Velocity = velocity
+
+			flyGyro.CFrame =
+				CFrame.lookAt(
+					root.Position,
+					root.Position + look
+				)
+
+		end)
+end
+
+--------------------------------------------------
+-- FLY BUTTON
+--------------------------------------------------
+
+flyButton.Activated:Connect(function()
+
+	if flying then
+		stopFly()
+	else
+		startFly()
+	end
+
+end)
+
+--------------------------------------------------
+-- FLY + / -
+--------------------------------------------------
+
+flyPlus.Activated:Connect(function()
+
+	flySpeed =
+		math.min(getFlySpeed()+10,1500)
+
+	flyBox.Text =
+		tostring(flySpeed)
+end)
+
+flyMinus.Activated:Connect(function()
+
+	flySpeed =
+		math.max(getFlySpeed()-10,1)
+
+	flyBox.Text =
+		tostring(flySpeed)
+end)
+
+flyBox.FocusLost:Connect(function()
+	getFlySpeed()
+end)
+
+--------------------------------------------------
+-- OPEN / CLOSE
+--------------------------------------------------
+
+openButton.Activated:Connect(function()
+
+	holder.Visible =
+		not holder.Visible
+
+end)
+
+--------------------------------------------------
+-- X
+--------------------------------------------------
+
+close.Activated:Connect(function()
+
+	-- إيقاف الطيران أولاً
+	stopFly()
+
+	-- إيقاف Noclip
+	noclipEnabled = false
+
+	local character =
+		player.Character
+
+	if character then
+
+		local humanoid =
+			character:FindFirstChildOfClass("Humanoid")
+
+		if humanoid then
+
+			humanoid.WalkSpeed = 16
+			humanoid.UseJumpPower = true
+			humanoid.JumpPower = 50
+			humanoid.PlatformStand = false
+			humanoid.AutoRotate = true
+
+		end
+
+		for _,part in ipairs(character:GetDescendants()) do
+
+			if part:IsA("BasePart") then
+				part.CanCollide = true
+			end
+
+		end
+	end
+
+	Workspace.Gravity = 196.2
+
+	gui:Destroy()
+
+end)
+
+--------------------------------------------------
+-- DRAG HOLDER
+--------------------------------------------------
+
+local dragging = false
+local dragStart
+local startPos
+
+holder.InputBegan:Connect(function(input)
+
+	if input.UserInputType == Enum.UserInputType.Touch
+	or input.UserInputType == Enum.UserInputType.MouseButton1 then
+
+		dragging = true
+
+		dragStart = input.Position
+		startPos = holder.Position
+
+	end
+
+end)
+
+UIS.InputChanged:Connect(function(input)
+
+	if not dragging then return end
+
+	if input.UserInputType == Enum.UserInputType.Touch
+	or input.UserInputType == Enum.UserInputType.MouseMovement then
+
+		local delta =
+			input.Position - dragStart
+
+		holder.Position =
+			UDim2.new(
+				startPos.X.Scale,
+				startPos.X.Offset + delta.X,
+				startPos.Y.Scale,
+				startPos.Y.Offset + delta.Y
+			)
+
+	end
+
+end)
+
+UIS.InputEnded:Connect(function(input)
+
+	if input.UserInputType == Enum.UserInputType.Touch
+	or input.UserInputType == Enum.UserInputType.MouseButton1 then
+
+		dragging = false
+
+	end
+
+end)
+
+--------------------------------------------------
+-- DRAG OPEN BUTTON
+--------------------------------------------------
+
+local openDragging = false
+local openDragStart
+local openStartPos
+
+openButton.InputBegan:Connect(function(input)
+
+	if input.UserInputType == Enum.UserInputType.Touch
+	or input.UserInputType == Enum.UserInputType.MouseButton1 then
+
+		openDragging = true
+
+		openDragStart = input.Position
+		openStartPos = openButton.Position
+
+	end
+
+end)
+
+UIS.InputChanged:Connect(function(input)
+
+	if not openDragging then return end
+
+	if input.UserInputType == Enum.UserInputType.Touch
+	or input.UserInputType == Enum.UserInputType.MouseMovement then
+
+		local delta =
+			input.Position - openDragStart
+
+		openButton.Position =
+			UDim2.new(
+				openStartPos.X.Scale,
+				openStartPos.X.Offset + delta.X,
+				openStartPos.Y.Scale,
+				openStartPos.Y.Offset + delta.Y
+			)
+
+	end
+
+end)
+
+UIS.InputEnded:Connect(function(input)
+
+	if input.UserInputType == Enum.UserInputType.Touch
+	or input.UserInputType == Enum.UserInputType.MouseButton1 then
+
+		openDragging = false
+
+	end
+
+end)
+
+--------------------------------------------------
+-- CHARACTER RESPAWN
+--------------------------------------------------
+
+player.CharacterAdded:Connect(function()
+
+	task.wait(0.5)
+
+	stopFly()
+
+	updateSpeed()
+	updateJump()
+
+	if gravityEnabled then
+		updateGravity()
+	end
+
+	if noclipEnabled then
+		updateNoclip()
+	end
+
+end)
