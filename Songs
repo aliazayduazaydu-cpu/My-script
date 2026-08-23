@@ -1,0 +1,484 @@
+--// BOOMBOX V6 - مرتب للجوال
+--// LocalScript داخل StarterPlayerScripts
+
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+--==================================================
+-- الأكواد
+--==================================================
+
+local Songs = {
+	{Name = "Song 1", ID = "82696338249251"},
+	{Name = "Song 2", ID = "122694166990287"},
+	{Name = "Song 3", ID = "99551853291230"},
+	{Name = "Song 4", ID = "106711954990826"},
+	{Name = "Song 5", ID = "82149511707056"},
+	{Name = "Song 6", ID = "140709876805704"},
+	{Name = "Song 7", ID = "114339730158889"},
+	{Name = "Song 8", ID = "112717178980639"}
+}
+
+local codesOpen = false
+local checking = false
+
+--==================================================
+-- GUI
+--==================================================
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "BoomBoxGUI"
+gui.ResetOnSpawn = false
+gui.Parent = playerGui
+
+--==================================================
+-- SOUND
+--==================================================
+
+local sound = Instance.new("Sound")
+sound.Name = "BoomBoxMusic"
+sound.Volume = 0.7
+sound.Looped = true
+sound.Parent = workspace
+
+--==================================================
+-- زر فتح
+--==================================================
+
+local openButton = Instance.new("TextButton")
+openButton.Size = UDim2.fromOffset(58,58)
+openButton.Position = UDim2.new(0,20,0.5,-29)
+openButton.BackgroundColor3 = Color3.fromRGB(30,30,45)
+openButton.Text = "🎵"
+openButton.TextSize = 27
+openButton.TextColor3 = Color3.new(1,1,1)
+openButton.Font = Enum.Font.GothamBold
+openButton.Parent = gui
+
+Instance.new("UICorner",openButton).CornerRadius = UDim.new(1,0)
+
+local openStroke = Instance.new("UIStroke",openButton)
+openStroke.Thickness = 2
+openStroke.Color = Color3.fromRGB(100,110,255)
+
+--==================================================
+-- MAIN
+--==================================================
+
+local main = Instance.new("Frame")
+main.Size = UDim2.fromOffset(350,470)
+main.Position = UDim2.new(0.5,-175,0.5,-235)
+main.BackgroundColor3 = Color3.fromRGB(18,18,28)
+main.Visible = false
+main.Parent = gui
+
+Instance.new("UICorner",main).CornerRadius = UDim.new(0,18)
+
+local mainStroke = Instance.new("UIStroke",main)
+mainStroke.Thickness = 2
+mainStroke.Color = Color3.fromRGB(85,95,220)
+
+--==================================================
+-- HEADER
+--==================================================
+
+local header = Instance.new("Frame")
+header.Size = UDim2.new(1,0,0,52)
+header.BackgroundTransparency = 1
+header.Parent = main
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1,-60,1,0)
+title.Position = UDim2.fromOffset(15,0)
+title.BackgroundTransparency = 1
+title.Text = "🎵  BOOMBOX"
+title.TextSize = 22
+title.Font = Enum.Font.GothamBold
+title.TextColor3 = Color3.new(1,1,1)
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Parent = header
+
+local close = Instance.new("TextButton")
+close.Size = UDim2.fromOffset(38,38)
+close.Position = UDim2.new(1,-47,0,7)
+close.BackgroundColor3 = Color3.fromRGB(195,55,65)
+close.Text = "×"
+close.TextSize = 24
+close.TextColor3 = Color3.new(1,1,1)
+close.Font = Enum.Font.GothamBold
+close.Parent = header
+
+Instance.new("UICorner",close).CornerRadius = UDim.new(0,10)
+
+--==================================================
+-- زر الأكواد
+--==================================================
+
+local codesToggle = Instance.new("TextButton")
+codesToggle.Size = UDim2.new(1,-30,0,43)
+codesToggle.Position = UDim2.fromOffset(15,60)
+codesToggle.BackgroundColor3 = Color3.fromRGB(55,65,150)
+codesToggle.Text = "🎶  اختيار كود الأغنية     ▼"
+codesToggle.TextSize = 15
+codesToggle.Font = Enum.Font.GothamBold
+codesToggle.TextColor3 = Color3.new(1,1,1)
+codesToggle.Parent = main
+
+Instance.new("UICorner",codesToggle).CornerRadius = UDim.new(0,11)
+
+--==================================================
+-- قائمة الأكواد
+--==================================================
+
+local songList = Instance.new("ScrollingFrame")
+songList.Size = UDim2.new(1,-30,0,145)
+songList.Position = UDim2.fromOffset(15,110)
+songList.BackgroundColor3 = Color3.fromRGB(25,25,36)
+songList.BorderSizePixel = 0
+songList.ScrollBarThickness = 5
+songList.ScrollingDirection = Enum.ScrollingDirection.Y
+songList.Visible = false
+songList.Parent = main
+
+Instance.new("UICorner",songList).CornerRadius = UDim.new(0,11)
+
+local layout = Instance.new("UIListLayout")
+layout.Padding = UDim.new(0,5)
+layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+layout.Parent = songList
+
+--==================================================
+-- منطقة الكود
+--==================================================
+
+local codeSection = Instance.new("Frame")
+codeSection.Size = UDim2.new(1,-30,0,95)
+codeSection.Position = UDim2.fromOffset(15,110)
+codeSection.BackgroundTransparency = 1
+codeSection.Parent = main
+
+local codeLabel = Instance.new("TextLabel")
+codeLabel.Size = UDim2.new(1,0,0,25)
+codeLabel.BackgroundTransparency = 1
+codeLabel.Text = "✏️  كود الأغنية"
+codeLabel.TextSize = 15
+codeLabel.Font = Enum.Font.GothamBold
+codeLabel.TextColor3 = Color3.fromRGB(215,215,225)
+codeLabel.TextXAlignment = Enum.TextXAlignment.Left
+codeLabel.Parent = codeSection
+
+local codeInput = Instance.new("TextBox")
+codeInput.Size = UDim2.new(1,0,0,45)
+codeInput.Position = UDim2.fromOffset(0,30)
+codeInput.BackgroundColor3 = Color3.fromRGB(35,35,48)
+codeInput.Text = Songs[1].ID
+codeInput.PlaceholderText = "اكتب ID الأغنية..."
+codeInput.PlaceholderColor3 = Color3.fromRGB(140,140,150)
+codeInput.TextColor3 = Color3.new(1,1,1)
+codeInput.TextSize = 16
+codeInput.Font = Enum.Font.Gotham
+codeInput.ClearTextOnFocus = false
+codeInput.Parent = codeSection
+
+Instance.new("UICorner",codeInput).CornerRadius = UDim.new(0,11)
+
+--==================================================
+-- الحالة
+--==================================================
+
+local status = Instance.new("TextLabel")
+status.Size = UDim2.new(1,-30,0,30)
+status.Position = UDim2.fromOffset(15,215)
+status.BackgroundTransparency = 1
+status.Text = "● متوقف"
+status.TextSize = 14
+status.Font = Enum.Font.GothamBold
+status.TextColor3 = Color3.fromRGB(255,100,100)
+status.Parent = main
+
+--==================================================
+-- أزرار التحكم
+--==================================================
+
+local play = Instance.new("TextButton")
+play.Size = UDim2.new(0.47,0,0,45)
+play.Position = UDim2.new(0.03,0,0,255)
+play.BackgroundColor3 = Color3.fromRGB(45,175,95)
+play.Text = "▶  تشغيل"
+play.TextSize = 16
+play.Font = Enum.Font.GothamBold
+play.TextColor3 = Color3.new(1,1,1)
+play.Parent = main
+
+Instance.new("UICorner",play).CornerRadius = UDim.new(0,11)
+
+local stop = Instance.new("TextButton")
+stop.Size = UDim2.new(0.47,0,0,45)
+stop.Position = UDim2.new(0.50,0,0,255)
+stop.BackgroundColor3 = Color3.fromRGB(195,55,65)
+stop.Text = "■  إيقاف"
+stop.TextSize = 16
+stop.Font = Enum.Font.GothamBold
+stop.TextColor3 = Color3.new(1,1,1)
+stop.Parent = main
+
+Instance.new("UICorner",stop).CornerRadius = UDim.new(0,11)
+
+--==================================================
+-- تحديث ترتيب العناصر
+--==================================================
+
+local function updateLayout()
+
+	if codesOpen then
+
+		songList.Visible = true
+
+		codeSection.Position = UDim2.fromOffset(15,265)
+		status.Position = UDim2.fromOffset(15,370)
+
+		play.Position = UDim2.new(0.03,0,0,410)
+		stop.Position = UDim2.new(0.50,0,0,410)
+
+		main.Size = UDim2.fromOffset(350,470)
+
+	else
+
+		songList.Visible = false
+
+		codeSection.Position = UDim2.fromOffset(15,110)
+		status.Position = UDim2.fromOffset(15,215)
+
+		play.Position = UDim2.new(0.03,0,0,255)
+		stop.Position = UDim2.new(0.50,0,0,255)
+
+		main.Size = UDim2.fromOffset(350,320)
+
+	end
+end
+
+--==================================================
+-- إنشاء الأكواد
+--==================================================
+
+for _,song in ipairs(Songs) do
+
+	local button = Instance.new("TextButton")
+	button.Size = UDim2.new(1,-12,0,38)
+	button.BackgroundColor3 = Color3.fromRGB(40,40,55)
+	button.Text = "🎵  "..song.Name.."   •   "..song.ID
+	button.TextSize = 13
+	button.TextColor3 = Color3.new(1,1,1)
+	button.Font = Enum.Font.Gotham
+	button.Parent = songList
+
+	Instance.new("UICorner",button).CornerRadius = UDim.new(0,9)
+
+	button.MouseButton1Click:Connect(function()
+
+		codeInput.Text = song.ID
+
+		status.Text = "✓ تم اختيار "..song.Name
+		status.TextColor3 = Color3.fromRGB(80,220,130)
+
+	end)
+end
+
+task.wait()
+
+songList.CanvasSize = UDim2.new(
+	0,0,0,
+	layout.AbsoluteContentSize.Y + 10
+)
+
+--==================================================
+-- فتح / إغلاق الأكواد
+--==================================================
+
+codesToggle.MouseButton1Click:Connect(function()
+
+	codesOpen = not codesOpen
+
+	if codesOpen then
+		codesToggle.Text = "🎶  اختيار كود الأغنية     ▲"
+	else
+		codesToggle.Text = "🎶  اختيار كود الأغنية     ▼"
+	end
+
+	updateLayout()
+
+end)
+
+--==================================================
+-- تشغيل
+--==================================================
+
+play.MouseButton1Click:Connect(function()
+
+	if checking then return end
+
+	local id = codeInput.Text:gsub("%D","")
+
+	if id == "" then
+
+		status.Text = "⚠ اكتب كود الأغنية"
+		status.TextColor3 = Color3.fromRGB(255,200,70)
+
+		return
+	end
+
+	checking = true
+
+	sound:Stop()
+	sound.SoundId = "rbxassetid://"..id
+	sound.Looped = true
+
+	status.Text = "⏳ جاري تحميل الصوت..."
+	status.TextColor3 = Color3.fromRGB(255,220,70)
+
+	local loaded = false
+
+	local connection = sound.Loaded:Connect(function()
+		loaded = true
+	end)
+
+	local success = pcall(function()
+		sound:Play()
+	end)
+
+	local startTime = os.clock()
+
+	while os.clock()-startTime < 8 do
+
+		if loaded or sound.IsLoaded then
+			break
+		end
+
+		task.wait(0.1)
+	end
+
+	connection:Disconnect()
+
+	task.wait(0.2)
+
+	if success and sound.IsLoaded and sound.TimeLength > 0 then
+
+		sound.Looped = true
+
+		if not sound.IsPlaying then
+			sound:Play()
+		end
+
+		status.Text = "🔁 يعمل ويتكرر تلقائيًا"
+		status.TextColor3 = Color3.fromRGB(70,255,130)
+
+	else
+
+		sound:Stop()
+
+		status.Text = "⚠ الصوت غير متاح"
+		status.TextColor3 = Color3.fromRGB(255,75,75)
+
+	end
+
+	checking = false
+
+end)
+
+--==================================================
+-- إيقاف
+--==================================================
+
+stop.MouseButton1Click:Connect(function()
+
+	sound:Stop()
+
+	status.Text = "● متوقف"
+	status.TextColor3 = Color3.fromRGB(255,100,100)
+
+end)
+
+--==================================================
+-- فتح القائمة الرئيسية
+--==================================================
+
+openButton.MouseButton1Click:Connect(function()
+
+	main.Visible = true
+	openButton.Visible = false
+
+end)
+
+--==================================================
+-- إغلاق القائمة الرئيسية
+--==================================================
+
+close.MouseButton1Click:Connect(function()
+
+	main.Visible = false
+	openButton.Visible = true
+
+end)
+
+--==================================================
+-- تحريك القائمة الرئيسية
+--==================================================
+
+local dragging = false
+local dragStart
+local startPosition
+
+title.InputBegan:Connect(function(input)
+
+	if input.UserInputType == Enum.UserInputType.MouseButton1
+		or input.UserInputType == Enum.UserInputType.Touch then
+
+		dragging = true
+		dragStart = input.Position
+		startPosition = main.Position
+
+		input.Changed:Connect(function()
+
+			if input.UserInputState == Enum.UserInputState.End then
+				dragging = false
+			end
+
+		end)
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+
+	if not dragging then return end
+
+	if input.UserInputType == Enum.UserInputType.MouseMovement
+		or input.UserInputType == Enum.UserInputType.Touch then
+
+		local delta = input.Position - dragStart
+
+		main.Position = UDim2.new(
+			startPosition.X.Scale,
+			startPosition.X.Offset + delta.X,
+			startPosition.Y.Scale,
+			startPosition.Y.Offset + delta.Y
+		)
+
+	end
+end)
+
+--==================================================
+-- تنظيف
+--==================================================
+
+gui.Destroying:Connect(function()
+
+	sound:Stop()
+	sound:Destroy()
+
+end)
+
+-- البداية
+updateLayout()
