@@ -1,0 +1,1449 @@
+--========================================================
+-- 👾 سكربت تطير سيارات / مابات
+-- MOBILE CAMERA VFLY
+-- LocalScript
+--========================================================
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+
+local Player = Players.LocalPlayer
+
+--========================================================
+-- SETTINGS
+--========================================================
+
+local FlySpeed = 100
+local MaxSpeed = 5000
+
+local FollowSpeed = 150
+local Acceleration = 40
+
+local Flying = false
+
+local Character
+local Humanoid
+local Root
+
+local FlyVelocity
+local FlyGyro
+
+local VehicleVelocity
+local VehicleGyro
+
+local CurrentVehicle
+local CurrentVelocity = Vector3.zero
+
+--========================================================
+-- CHARACTER
+--========================================================
+
+local function SetupCharacter(Char)
+
+	Character = Char
+	Humanoid = Char:WaitForChild("Humanoid")
+	Root = Char:WaitForChild("HumanoidRootPart")
+
+	CurrentVelocity = Vector3.zero
+
+end
+
+SetupCharacter(
+	Player.Character or Player.CharacterAdded:Wait()
+)
+
+--========================================================
+-- PLAYER OBJECTS
+--========================================================
+
+local function RemovePlayerObjects()
+
+	if FlyVelocity then
+		FlyVelocity:Destroy()
+		FlyVelocity = nil
+	end
+
+	if FlyGyro then
+		FlyGyro:Destroy()
+		FlyGyro = nil
+	end
+
+end
+
+local function CreatePlayerObjects()
+
+	if not Root then
+		return
+	end
+
+	RemovePlayerObjects()
+
+	FlyVelocity = Instance.new("BodyVelocity")
+	FlyVelocity.Name = "CameraVFlyVelocity"
+
+	FlyVelocity.MaxForce = Vector3.new(
+		math.huge,
+		math.huge,
+		math.huge
+	)
+
+	FlyVelocity.P = 100000
+	FlyVelocity.Velocity = Vector3.zero
+	FlyVelocity.Parent = Root
+
+	FlyGyro = Instance.new("BodyGyro")
+	FlyGyro.Name = "CameraVFlyGyro"
+
+	FlyGyro.MaxTorque = Vector3.new(
+		math.huge,
+		math.huge,
+		math.huge
+	)
+
+	FlyGyro.P = 1000000
+	FlyGyro.D = 60
+	FlyGyro.CFrame = Root.CFrame
+	FlyGyro.Parent = Root
+
+end
+
+--========================================================
+-- VEHICLE
+--========================================================
+
+local function GetVehicle()
+
+	if not Humanoid then
+		return nil, nil
+	end
+
+	local Seat = Humanoid.SeatPart
+
+	if not Seat then
+		return nil, nil
+	end
+
+	if not Seat:IsA("VehicleSeat") then
+		return nil, nil
+	end
+
+	local Model =
+		Seat:FindFirstAncestorOfClass("Model")
+
+	if not Model then
+		return nil, nil
+	end
+
+	local MainPart = Model.PrimaryPart
+
+	if not MainPart then
+		MainPart =
+			Model:FindFirstChild("HumanoidRootPart")
+	end
+
+	if not MainPart then
+		MainPart =
+			Model:FindFirstChildWhichIsA(
+				"BasePart",
+				true
+			)
+	end
+
+	return Model, MainPart
+
+end
+
+--========================================================
+-- VEHICLE OBJECTS
+--========================================================
+
+local function RemoveVehicleObjects()
+
+	if VehicleVelocity then
+		VehicleVelocity:Destroy()
+		VehicleVelocity = nil
+	end
+
+	if VehicleGyro then
+		VehicleGyro:Destroy()
+		VehicleGyro = nil
+	end
+
+	CurrentVehicle = nil
+
+end
+
+local function CreateVehicleObjects(Model, MainPart)
+
+	if not MainPart then
+		return
+	end
+
+	if CurrentVehicle == Model
+		and VehicleVelocity
+		and VehicleGyro then
+		return
+	end
+
+	RemoveVehicleObjects()
+
+	CurrentVehicle = Model
+
+	VehicleVelocity =
+		Instance.new("BodyVelocity")
+
+	VehicleVelocity.Name =
+		"CameraVehicleVelocity"
+
+	VehicleVelocity.MaxForce =
+		Vector3.new(
+			math.huge,
+			math.huge,
+			math.huge
+		)
+
+	VehicleVelocity.P =
+		150000
+
+	VehicleVelocity.Velocity =
+		Vector3.zero
+
+	VehicleVelocity.Parent =
+		MainPart
+
+	VehicleGyro =
+		Instance.new("BodyGyro")
+
+	VehicleGyro.Name =
+		"CameraVehicleGyro"
+
+	VehicleGyro.MaxTorque =
+		Vector3.new(
+			math.huge,
+			math.huge,
+			math.huge
+		)
+
+	VehicleGyro.P =
+		1500000
+
+	VehicleGyro.D =
+		50
+
+	VehicleGyro.CFrame =
+		MainPart.CFrame
+
+	VehicleGyro.Parent =
+		MainPart
+
+end
+
+--========================================================
+-- STOP
+--========================================================
+
+local function StopEverything()
+
+	RemovePlayerObjects()
+	RemoveVehicleObjects()
+
+	CurrentVelocity =
+		Vector3.zero
+
+end
+
+--========================================================
+-- RESPAWN
+--========================================================
+
+Player.CharacterAdded:Connect(function(Char)
+
+	StopEverything()
+
+	task.wait(0.3)
+
+	SetupCharacter(Char)
+
+	if Flying then
+		CreatePlayerObjects()
+	end
+
+end)
+
+--========================================================
+-- GUI
+--========================================================
+
+local Gui =
+	Instance.new("ScreenGui")
+
+Gui.Name =
+	"سكربت تطير سيارات مابات"
+
+Gui.ResetOnSpawn =
+	false
+
+Gui.IgnoreGuiInset =
+	true
+
+Gui.Parent =
+	Player:WaitForChild("PlayerGui")
+
+--========================================================
+-- 👾 MAIN BUTTON
+--========================================================
+
+local OpenButton =
+	Instance.new("TextButton")
+
+OpenButton.Size =
+	UDim2.fromOffset(
+		68,
+		68
+	)
+
+OpenButton.Position =
+	UDim2.new(
+		0,
+		18,
+		0.5,
+		-34
+	)
+
+OpenButton.BackgroundColor3 =
+	Color3.fromRGB(
+		18,
+		18,
+		30
+	)
+
+OpenButton.Text =
+	"👾"
+
+OpenButton.TextSize =
+	32
+
+OpenButton.Font =
+	Enum.Font.GothamBold
+
+OpenButton.AutoButtonColor =
+	false
+
+OpenButton.Parent =
+	Gui
+
+local OpenCorner =
+	Instance.new("UICorner")
+
+OpenCorner.CornerRadius =
+	UDim.new(
+		1,
+		0
+	)
+
+OpenCorner.Parent =
+	OpenButton
+
+local OpenStroke =
+	Instance.new("UIStroke")
+
+OpenStroke.Thickness =
+	3
+
+OpenStroke.Parent =
+	OpenButton
+
+--========================================================
+-- EXTRA GLOW
+--========================================================
+
+local Glow =
+	Instance.new("ImageLabel")
+
+Glow.Size =
+	UDim2.new(
+		1,
+		35,
+		1,
+		35
+	)
+
+Glow.Position =
+	UDim2.fromOffset(
+		-17,
+		-17
+	)
+
+Glow.BackgroundTransparency =
+	1
+
+Glow.Image =
+	"rbxassetid://5028857084"
+
+Glow.ImageTransparency =
+	0.45
+
+Glow.ScaleType =
+	Enum.ScaleType.Slice
+
+Glow.SliceCenter =
+	Rect.new(
+		24,
+		24,
+		276,
+		276
+	)
+
+Glow.ZIndex =
+	OpenButton.ZIndex - 1
+
+Glow.Parent =
+	OpenButton
+
+--========================================================
+-- MAIN MENU
+--========================================================
+
+local Main =
+	Instance.new("Frame")
+
+Main.Size =
+	UDim2.fromOffset(
+		315,
+		285
+	)
+
+Main.Position =
+	UDim2.new(
+		0.5,
+		-157,
+		0.22,
+		0
+	)
+
+Main.BackgroundColor3 =
+	Color3.fromRGB(
+		10,
+		10,
+		19
+	)
+
+Main.BorderSizePixel =
+	0
+
+Main.Visible =
+	false
+
+Main.Parent =
+	Gui
+
+local MainCorner =
+	Instance.new("UICorner")
+
+MainCorner.CornerRadius =
+	UDim.new(
+		0,
+		22
+	)
+
+MainCorner.Parent =
+	Main
+
+local MainStroke =
+	Instance.new("UIStroke")
+
+MainStroke.Thickness =
+	2
+
+MainStroke.Parent =
+	Main
+
+--========================================================
+-- HEADER
+--========================================================
+
+local Header =
+	Instance.new("TextLabel")
+
+Header.Size =
+	UDim2.new(
+		1,
+		0,
+		0,
+		58
+	)
+
+Header.BackgroundTransparency =
+	1
+
+Header.Text =
+	"👾  سكربت تطير سيارات / مابات"
+
+Header.TextColor3 =
+	Color3.new(
+		1,
+		1,
+		1
+	)
+
+Header.TextSize =
+	17
+
+Header.Font =
+	Enum.Font.GothamBold
+
+Header.TextXAlignment =
+	Enum.TextXAlignment.Left
+
+Header.Position =
+	UDim2.fromOffset(
+		17,
+		3
+	)
+
+Header.Parent =
+	Main
+
+--========================================================
+-- STATUS
+--========================================================
+
+local StatusBox =
+	Instance.new("Frame")
+
+StatusBox.Size =
+	UDim2.new(
+		1,
+		-30,
+		0,
+		46
+	)
+
+StatusBox.Position =
+	UDim2.fromOffset(
+		15,
+		62
+	)
+
+StatusBox.BackgroundColor3 =
+	Color3.fromRGB(
+		23,
+		23,
+		38
+	)
+
+StatusBox.BorderSizePixel =
+	0
+
+StatusBox.Parent =
+	Main
+
+local StatusCorner =
+	Instance.new("UICorner")
+
+StatusCorner.CornerRadius =
+	UDim.new(
+		0,
+		13
+	)
+
+StatusCorner.Parent =
+	StatusBox
+
+local Status =
+	Instance.new("TextLabel")
+
+Status.Size =
+	UDim2.new(
+		1,
+		-95,
+		1,
+		0
+	)
+
+Status.Position =
+	UDim2.fromOffset(
+		13,
+		0
+	)
+
+Status.BackgroundTransparency =
+	1
+
+Status.Text =
+	"●  VFLY OFF"
+
+Status.TextColor3 =
+	Color3.fromRGB(
+		255,
+		100,
+		110
+	)
+
+Status.TextSize =
+	13
+
+Status.Font =
+	Enum.Font.GothamBold
+
+Status.TextXAlignment =
+	Enum.TextXAlignment.Left
+
+Status.Parent =
+	StatusBox
+
+--========================================================
+-- TOGGLE
+--========================================================
+
+local Toggle =
+	Instance.new("TextButton")
+
+Toggle.Size =
+	UDim2.fromOffset(
+		62,
+		30
+	)
+
+Toggle.Position =
+	UDim2.new(
+		1,
+		-72,
+		0.5,
+		-15
+	)
+
+Toggle.BackgroundColor3 =
+	Color3.fromRGB(
+		75,
+		35,
+		43
+	)
+
+Toggle.Text =
+	"OFF"
+
+Toggle.TextColor3 =
+	Color3.new(
+		1,
+		1,
+		1
+	)
+
+Toggle.TextSize =
+	10
+
+Toggle.Font =
+	Enum.Font.GothamBold
+
+Toggle.Parent =
+	StatusBox
+
+local ToggleCorner =
+	Instance.new("UICorner")
+
+ToggleCorner.CornerRadius =
+	UDim.new(
+		0,
+		10
+	)
+
+ToggleCorner.Parent =
+	Toggle
+
+--========================================================
+-- SPEED
+--========================================================
+
+local SpeedLabel =
+	Instance.new("TextLabel")
+
+SpeedLabel.Size =
+	UDim2.new(
+		1,
+		-30,
+		0,
+		20
+	)
+
+SpeedLabel.Position =
+	UDim2.fromOffset(
+		15,
+		118
+	)
+
+SpeedLabel.BackgroundTransparency =
+	1
+
+SpeedLabel.Text =
+	"FLY SPEED                    MAX 5000"
+
+SpeedLabel.TextColor3 =
+	Color3.fromRGB(
+		145,
+		145,
+		165
+	)
+
+SpeedLabel.TextSize =
+	10
+
+SpeedLabel.Font =
+	Enum.Font.GothamBold
+
+SpeedLabel.TextXAlignment =
+	Enum.TextXAlignment.Left
+
+SpeedLabel.Parent =
+	Main
+
+local SpeedBox =
+	Instance.new("TextBox")
+
+SpeedBox.Size =
+	UDim2.new(
+		1,
+		-30,
+		0,
+		40
+	)
+
+SpeedBox.Position =
+	UDim2.fromOffset(
+		15,
+		142
+	)
+
+SpeedBox.BackgroundColor3 =
+	Color3.fromRGB(
+		25,
+		25,
+		40
+	)
+
+SpeedBox.BorderSizePixel =
+	0
+
+SpeedBox.Text =
+	"100"
+
+SpeedBox.PlaceholderText =
+	"اكتب السرعة"
+
+SpeedBox.TextColor3 =
+	Color3.new(
+		1,
+		1,
+		1
+	)
+
+SpeedBox.TextSize =
+	14
+
+SpeedBox.Font =
+	Enum.Font.GothamBold
+
+SpeedBox.ClearTextOnFocus =
+	false
+
+SpeedBox.Parent =
+	Main
+
+local SpeedCorner =
+	Instance.new("UICorner")
+
+SpeedCorner.CornerRadius =
+	UDim.new(
+		0,
+		11
+	)
+
+SpeedCorner.Parent =
+	SpeedBox
+
+--========================================================
+-- EFFECTS
+--========================================================
+
+local EffectsLabel =
+	Instance.new("TextLabel")
+
+EffectsLabel.Size =
+	UDim2.new(
+		1,
+		-30,
+		0,
+		20
+	)
+
+EffectsLabel.Position =
+	UDim2.fromOffset(
+		15,
+		190
+	)
+
+EffectsLabel.BackgroundTransparency =
+	1
+
+EffectsLabel.Text =
+	"✨ EFFECTS  •  AUTO"
+
+EffectsLabel.TextColor3 =
+	Color3.new(
+		1,
+		1,
+		1
+	)
+
+EffectsLabel.TextSize =
+	11
+
+EffectsLabel.Font =
+	Enum.Font.GothamBold
+
+EffectsLabel.TextXAlignment =
+	Enum.TextXAlignment.Left
+
+EffectsLabel.Parent =
+	Main
+
+--========================================================
+-- EFFECT INFO
+--========================================================
+
+local EffectsInfo =
+	Instance.new("TextLabel")
+
+EffectsInfo.Size =
+	UDim2.new(
+		1,
+		-30,
+		0,
+		55
+	)
+
+EffectsInfo.Position =
+	UDim2.fromOffset(
+		15,
+		215
+	)
+
+EffectsInfo.BackgroundColor3 =
+	Color3.fromRGB(
+		21,
+		21,
+		35
+	)
+
+EffectsInfo.Text =
+	"💫 Glow   •   Pulse   •   Hover\n⚡ Instant Camera Follow   •   📱 Mobile"
+
+EffectsInfo.TextColor3 =
+	Color3.fromRGB(
+		175,
+		175,
+		195
+	)
+
+EffectsInfo.TextSize =
+	10
+
+EffectsInfo.Font =
+	Enum.Font.GothamMedium
+
+EffectsInfo.TextWrapped =
+	true
+
+EffectsInfo.TextXAlignment =
+	Enum.TextXAlignment.Center
+
+EffectsInfo.TextYAlignment =
+	Enum.TextYAlignment.Center
+
+EffectsInfo.Parent =
+	Main
+
+local InfoCorner =
+	Instance.new("UICorner")
+
+InfoCorner.CornerRadius =
+	UDim.new(
+		0,
+		12
+	)
+
+InfoCorner.Parent =
+	EffectsInfo
+
+--========================================================
+-- SPEED
+--========================================================
+
+SpeedBox.FocusLost:Connect(function()
+
+	local Number =
+		tonumber(
+			SpeedBox.Text
+		)
+
+	if not Number then
+
+		SpeedBox.Text =
+			tostring(FlySpeed)
+
+		return
+
+	end
+
+	FlySpeed =
+		math.clamp(
+			math.floor(Number),
+			1,
+			MaxSpeed
+		)
+
+	SpeedBox.Text =
+		tostring(FlySpeed)
+
+end)
+
+--========================================================
+-- STATUS UPDATE
+--========================================================
+
+local function UpdateStatus()
+
+	if Flying then
+
+		Status.Text =
+			"●  VFLY ON"
+
+		Status.TextColor3 =
+			Color3.fromRGB(
+				80,
+				255,
+				150
+			)
+
+		Toggle.Text =
+			"ON"
+
+		Toggle.BackgroundColor3 =
+			Color3.fromRGB(
+				30,
+				115,
+				65
+			)
+
+		CreatePlayerObjects()
+
+	else
+
+		Status.Text =
+			"●  VFLY OFF"
+
+		Status.TextColor3 =
+			Color3.fromRGB(
+				255,
+				100,
+				110
+			)
+
+		Toggle.Text =
+			"OFF"
+
+		Toggle.BackgroundColor3 =
+			Color3.fromRGB(
+				75,
+				35,
+				43
+			)
+
+		StopEverything()
+
+	end
+
+end
+
+--========================================================
+-- TOGGLE EFFECT
+--========================================================
+
+Toggle.MouseButton1Click:Connect(function()
+
+	Flying =
+		not Flying
+
+	UpdateStatus()
+
+end)
+
+--========================================================
+-- 👾 BUTTON EFFECT
+--========================================================
+
+local ButtonBusy = false
+
+OpenButton.MouseButton1Click:Connect(function()
+
+	-- القائمة تفتح وتبقى زر 👾 موجود
+	Main.Visible =
+		not Main.Visible
+
+	if ButtonBusy then
+		return
+	end
+
+	ButtonBusy = true
+
+	local OriginalSize =
+		UDim2.fromOffset(
+			68,
+			68
+		)
+
+	local Bigger =
+		UDim2.fromOffset(
+			78,
+			78
+		)
+
+	local Grow =
+		TweenService:Create(
+			OpenButton,
+			TweenInfo.new(
+				0.12,
+				Enum.EasingStyle.Back,
+				Enum.EasingDirection.Out
+			),
+			{
+				Size = Bigger
+			}
+		)
+
+	local Shrink =
+		TweenService:Create(
+			OpenButton,
+			TweenInfo.new(
+				0.16,
+				Enum.EasingStyle.Back,
+				Enum.EasingDirection.InOut
+			),
+			{
+				Size = OriginalSize
+			}
+		)
+
+	Grow:Play()
+
+	Grow.Completed:Connect(function()
+		Shrink:Play()
+	end)
+
+	Shrink.Completed:Connect(function()
+		ButtonBusy = false
+	end)
+
+end)
+
+--========================================================
+-- 👾 DRAG BUTTON ON MOBILE
+--========================================================
+
+local Dragging = false
+local DragStart
+local ButtonStart
+
+OpenButton.InputBegan:Connect(function(Input)
+
+	if Input.UserInputType ==
+		Enum.UserInputType.Touch then
+
+		Dragging = true
+
+		DragStart =
+			Input.Position
+
+		ButtonStart =
+			OpenButton.Position
+
+	end
+
+end)
+
+UserInputService.InputChanged:Connect(function(Input)
+
+	if not Dragging then
+		return
+	end
+
+	if Input.UserInputType ==
+		Enum.UserInputType.Touch then
+
+		local Delta =
+			Input.Position -
+			DragStart
+
+		OpenButton.Position =
+			UDim2.new(
+				ButtonStart.X.Scale,
+				ButtonStart.X.Offset + Delta.X,
+
+				ButtonStart.Y.Scale,
+				ButtonStart.Y.Offset + Delta.Y
+			)
+
+	end
+
+end)
+
+UserInputService.TouchEnded:Connect(function()
+
+	Dragging = false
+
+end)
+
+--========================================================
+-- DRAG MAIN MENU
+--========================================================
+
+local MenuDragging = false
+local MenuStart
+local MenuPosition
+
+Header.InputBegan:Connect(function(Input)
+
+	if Input.UserInputType ==
+		Enum.UserInputType.Touch then
+
+		MenuDragging = true
+
+		MenuStart =
+			Input.Position
+
+		MenuPosition =
+			Main.Position
+
+	end
+
+end)
+
+UserInputService.InputChanged:Connect(function(Input)
+
+	if not MenuDragging then
+		return
+	end
+
+	if Input.UserInputType ==
+		Enum.UserInputType.Touch then
+
+		local Delta =
+			Input.Position -
+			MenuStart
+
+		Main.Position =
+			UDim2.new(
+				MenuPosition.X.Scale,
+				MenuPosition.X.Offset + Delta.X,
+
+				MenuPosition.Y.Scale,
+				MenuPosition.Y.Offset + Delta.Y
+			)
+
+	end
+
+end)
+
+UserInputService.TouchEnded:Connect(function()
+
+	MenuDragging = false
+
+end)
+
+--========================================================
+-- ⚡ FLIGHT ENGINE
+--========================================================
+
+RunService.RenderStepped:Connect(function(dt)
+
+	if not Flying then
+		return
+	end
+
+	if not Humanoid then
+		return
+	end
+
+	local Camera =
+		workspace.CurrentCamera
+
+	if not Camera then
+		return
+	end
+
+	local Look =
+		Camera.CFrame.LookVector
+
+	local Right =
+		Camera.CFrame.RightVector
+
+	--====================================================
+	-- VEHICLE
+	--====================================================
+
+	local VehicleModel,
+		VehicleRoot =
+		GetVehicle()
+
+	if VehicleModel and VehicleRoot then
+
+		RemovePlayerObjects()
+
+		CreateVehicleObjects(
+			VehicleModel,
+			VehicleRoot
+		)
+
+		if not VehicleVelocity
+			or not VehicleGyro then
+			return
+		end
+
+		local Move =
+			Humanoid.MoveDirection
+
+		local FlatLook =
+			Vector3.new(
+				Look.X,
+				0,
+				Look.Z
+			)
+
+		local FlatRight =
+			Vector3.new(
+				Right.X,
+				0,
+				Right.Z
+			)
+
+		if FlatLook.Magnitude > 0.001 then
+			FlatLook =
+				FlatLook.Unit
+		end
+
+		if FlatRight.Magnitude > 0.001 then
+			FlatRight =
+				FlatRight.Unit
+		end
+
+		local Forward =
+			Move:Dot(
+				FlatLook
+			)
+
+		local Side =
+			Move:Dot(
+				FlatRight
+			)
+
+		local Direction =
+			Look * Forward
+
+		Direction +=
+			FlatRight * Side
+
+		local Target =
+			Vector3.zero
+
+		if Direction.Magnitude > 0.001 then
+
+			Target =
+				Direction.Unit *
+				FlySpeed
+
+		end
+
+		local Alpha =
+			1 - math.exp(
+				-Acceleration * dt
+			)
+
+		CurrentVelocity =
+			CurrentVelocity:Lerp(
+				Target,
+				Alpha
+			)
+
+		VehicleVelocity.Velocity =
+			CurrentVelocity
+
+		-- تتبع الكاميرا مباشرة
+		VehicleGyro.CFrame =
+			CFrame.lookAt(
+				VehicleRoot.Position,
+				VehicleRoot.Position + Look
+			)
+
+		VehicleRoot.AssemblyAngularVelocity =
+			Vector3.zero
+
+		return
+
+	end
+
+	--====================================================
+	-- PLAYER
+	--====================================================
+
+	RemoveVehicleObjects()
+
+	if not Root then
+		return
+	end
+
+	if not FlyVelocity
+		or not FlyVelocity.Parent then
+
+		CreatePlayerObjects()
+
+	end
+
+	if not FlyVelocity
+		or not FlyGyro then
+		return
+	end
+
+	local Move =
+		Humanoid.MoveDirection
+
+	local FlatLook =
+		Vector3.new(
+			Look.X,
+			0,
+			Look.Z
+		)
+
+	local FlatRight =
+		Vector3.new(
+			Right.X,
+			0,
+			Right.Z
+		)
+
+	if FlatLook.Magnitude > 0.001 then
+		FlatLook =
+			FlatLook.Unit
+	end
+
+	if FlatRight.Magnitude > 0.001 then
+		FlatRight =
+			FlatRight.Unit
+	end
+
+	local Forward =
+		Move:Dot(
+			FlatLook
+		)
+
+	local Side =
+		Move:Dot(
+			FlatRight
+		)
+
+	local Direction =
+		Look * Forward
+
+	Direction +=
+		FlatRight * Side
+
+	local Target =
+		Vector3.zero
+
+	if Direction.Magnitude > 0.001 then
+
+		Target =
+			Direction.Unit *
+			FlySpeed
+
+	end
+
+	local Alpha =
+		1 - math.exp(
+			-Acceleration * dt
+		)
+
+	CurrentVelocity =
+		CurrentVelocity:Lerp(
+			Target,
+			Alpha
+		)
+
+	FlyVelocity.Velocity =
+		CurrentVelocity
+
+	FlyGyro.CFrame =
+		CFrame.lookAt(
+			Root.Position,
+			Root.Position + Look
+		)
+
+end)
+
+--========================================================
+-- 👾 AUTOMATIC EFFECTS
+--========================================================
+
+task.spawn(function()
+
+	local Time = 0
+
+	while Gui.Parent do
+
+		Time =
+			Time + 0.08
+
+		-- Glow يتنفس
+		local GlowAlpha =
+			0.25 +
+			(math.sin(Time) + 1) * 0.12
+
+		Glow.ImageTransparency =
+			GlowAlpha
+
+		-- سمك الإطار
+		OpenStroke.Thickness =
+			2.5 +
+			(math.sin(Time * 1.4) + 1) * 0.8
+
+		MainStroke.Thickness =
+			2 +
+			(math.sin(Time * 1.2) + 1) * 0.5
+
+		-- حركة خفيفة للأيقونة
+		OpenButton.Rotation =
+			math.sin(Time * 0.7) * 4
+
+		-- نبضة بسيطة
+		local Scale =
+			1 +
+			math.sin(Time * 1.5) * 0.025
+
+		OpenButton.Size =
+			UDim2.fromOffset(
+				68 * Scale,
+				68 * Scale
+			)
+
+		task.wait(0.02)
+
+	end
+
+end)
+
+--========================================================
+-- START
+--========================================================
+
+UpdateStatus()
